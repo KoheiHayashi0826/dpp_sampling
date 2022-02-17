@@ -1,15 +1,45 @@
-from cmath import sqrt
-import os
-from traceback import print_tb 
-
+import os 
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.random import rand, randn
 from scipy import special
+from scipy.linalg import qr
+from sympy import print_jscode
 import torch
 
+from dppy.finite_dpps import FiniteDPP
+from dppy.utils import example_eval_L_linear
 from dppy.beta_ensembles import HermiteEnsemble
 
+# kDPP sampling using DPPy
+r, N = 900, 1000 # r < N
+k = 900 # number of sample points. 'k > r' is needed
+dim = 2
 
+
+eigen_vectors , _ = qr(randn(N, r), mode='economic')
+#eigen_values = rand(r)
+eigen_values = np.ones(r)
+
+#DPP = FiniteDPP('correlartion', **{'K': (eigen_vectors*eigen_values).dot(eigen_vectors.T)})
+DPP = FiniteDPP(kernel_type='correlation', 
+                projection = True,
+                **{'K_eig_dec': (eigen_values, eigen_vectors)})
+
+
+DPP.flush_samples()
+for _ in range(dim):
+#    DPP.sample_exact()
+    DPP.sample_exact_k_dpp(size=k)
+
+sample_pts = DPP.list_of_samples
+#print(sample_pts[0])
+#plt.scatter([1]*30, sample_pts[0])
+plt.scatter(sample_pts[0], sample_pts[1])
+plt.show()
+
+
+"""
 def kernel(n, x, y):
     Hn0 = special.hermite(n, monic=True)
     Hn1 = special.hermite(n-1, monic=True)
@@ -69,7 +99,7 @@ print(pdf_dpp(K), pdf_dpp(K1), pdf_dpp(K2))
 
 
 
-"""
+
 # sampling by dppy
 hermite = HermiteEnsemble(beta=2)
 a = hermite.sample_full_model(size_N=500) # return as ndarray
